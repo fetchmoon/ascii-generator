@@ -4,124 +4,182 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASCII Art Generator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: 'Roboto', sans-serif;
-        }
-        pre {
-            background: #2a2a2a;
+        body { background-color: #1a1a1a; color: #ffffff; font-family: 'Roboto', sans-serif; }
+        pre { 
+            background: #2a2a2a; 
             padding: 1rem;
             border-radius: 0.5rem;
             overflow-x: auto;
-            white-space: pre-wrap; /* Wrap long lines */
+            white-space: pre-wrap;
+            tab-size: 4;
         }
-        .error-message {
-            color: #ff4d4d;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
+        .slider-container { display: flex; justify-content: space-between; }
+        .error-message { color: #ff4d4d; font-size: 0.9rem; margin-top: 0.5rem; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="p-8">
     <div class="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 space-y-8">
         <h1 class="text-3xl font-bold text-center">ASCII Art Generator</h1>
 
-        <!-- Text Input -->
-        <section>
-            <h2 class="text-xl font-bold mb-4">Text to ASCII</h2>
-            <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        <!-- Combined Form -->
+        <form method="POST" enctype="multipart/form-data" class="space-y-8" id="mainForm">
+            <!-- Text Input Section -->
+            <fieldset class="space-y-4">
+                <legend class="text-xl font-bold">Text to ASCII</legend>
+                
                 <div class="form-group">
                     <label for="text" class="block text-sm font-medium">Enter Text:</label>
-                    <input type="text" id="text" name="text" class="w-full p-2 rounded bg-gray-700 text-white" oninput="updatePreview()" aria-label="Enter text for ASCII conversion" />
+                    <input type="text" id="text" name="text" class="w-full p-2 rounded bg-gray-700 text-white" 
+                           oninput="updatePreview()" aria-label="Text input for ASCII conversion" />
                 </div>
+
                 <div class="form-group">
-                    <label for="font" class="block text-sm font-medium">Font:</label>
-                    <select id="font" name="font" class="w-full p-2 rounded bg-gray-700 text-white" onchange="updatePreview()" aria-label="Select font for ASCII art">
+                    <label for="font" class="block text-sm font-medium">Font Style:</label>
+                    <select id="font" name="font" class="w-full p-2 rounded bg-gray-700 text-white" 
+                            onchange="updatePreview()" aria-label="Select ASCII font style">
                         {% for font in fonts %}
                         <option value="{{ font }}">{{ font }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">Generate ASCII Art</button>
-            </form>
-        </section>
+            </fieldset>
 
-        <!-- Live Preview -->
+            <!-- Image Upload Section -->
+            <fieldset class="space-y-4">
+                <legend class="text-xl font-bold">Image to ASCII</legend>
+                
+                <div class="form-group">
+                    <label for="image" class="block text-sm font-medium">Upload Image:</label>
+                    <input type="file" id="image" name="image" accept="image/*" 
+                           class="w-full p-2 rounded bg-gray-700 text-white" 
+                           aria-label="Upload image for ASCII conversion" />
+                </div>
+
+                <div class="form-group">
+                    <label class="block text-sm font-medium">Width (Characters):</label>
+                    <input type="range" id="width" name="width" min="50" max="300" step="10" value="100" 
+                           class="w-full" oninput="updateWidthLabel()">
+                    <div class="slider-container">
+                        <span>50</span>
+                        <span id="widthValue">100</span>
+                        <span>300</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="contrast" class="block text-sm font-medium">Contrast:</label>
+                    <input type="range" id="contrast" name="contrast" min="0.5" max="2" step="0.1" value="1.0" 
+                           class="w-full" oninput="updateContrastLabel()">
+                    <div class="slider-container">
+                        <span>0.5x</span>
+                        <span id="contrastValue">1.0x</span>
+                        <span>2.0x</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="brightness" class="block text-sm font-medium">Brightness:</label>
+                    <input type="range" id="brightness" name="brightness" min="0.5" max="2" step="0.1" value="1.0" 
+                           class="w-full" oninput="updateBrightnessLabel()">
+                    <div class="slider-container">
+                        <span>0.5x</span>
+                        <span id="brightnessValue">1.0x</span>
+                        <span>2.0x</span>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Action Buttons -->
+            <div class="flex space-x-4">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex-1">
+                    Generate ASCII Art
+                </button>
+                <button type="reset" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 flex-1">
+                    Clear Form
+                </button>
+            </div>
+        </form>
+
+        <!-- Preview Section -->
         <section>
             <h2 class="text-xl font-bold">Live Preview</h2>
-            <pre id="ascii-preview">{{ ascii_text or "Your ASCII art will appear here..." }}</pre>
-            <div id="preview-error" class="error-message hidden">Error generating preview. Please try again.</div>
+            <pre id="ascii-preview">{{ ascii_text or ascii_image or "Your ASCII art will appear here..." }}</pre>
+            <div id="preview-error" class="error-message hidden">Error generating preview. Please check your input.</div>
         </section>
 
         <!-- Export Options -->
         <section>
             <h2 class="text-xl font-bold">Export Options</h2>
             <form method="POST" class="space-y-4">
-                <input type="hidden" name="text" value="{{ ascii_text }}" />
-                <input type="hidden" name="image" value="{{ ascii_image }}" />
-                <div class="form-group">
-                    <label class="block text-sm font-medium">Select Export Format:</label>
-                    <div class="flex space-x-4">
-                        <button type="submit" name="export" value="txt" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export as TXT</button>
-                        <button type="submit" name="export" value="pdf" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Export as PDF</button>
-                        <button type="submit" name="export" value="qr" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">Export as QR Code</button>
-                        <button type="submit" name="export" value="cloud" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Upload to Dropbox</button>
-                    </div>
+                <input type="hidden" name="export_content" value="{{ ascii_text or ascii_image }}">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <button type="submit" name="export" value="txt" 
+                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Export as TXT
+                    </button>
+                    <button type="submit" name="export" value="pdf" 
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        Export as PDF
+                    </button>
+                    <button type="submit" name="export" value="qr" 
+                            class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                        Generate QR Code
+                    </button>
+                    <button type="submit" name="export" value="cloud" 
+                            class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                        Upload to Dropbox
+                    </button>
                 </div>
             </form>
         </section>
-
-        <!-- Image Upload -->
-        <section>
-            <h2 class="text-xl font-bold">Image to ASCII</h2>
-            <form method="POST" enctype="multipart/form-data" class="space-y-4">
-                <div class="form-group">
-                    <label for="image" class="block text-sm font-medium">Upload Image:</label>
-                    <input type="file" id="image" name="image" accept=".png,.jpg,.jpeg,.gif" class="w-full p-2 rounded bg-gray-700 text-white" aria-label="Upload image for ASCII conversion" />
-                </div>
-                <div class="form-group">
-                    <label for="contrast" class="block text-sm font-medium">Contrast:</label>
-                    <input type="range" id="contrast" name="contrast" min="0.1" max="2.0" step="0.1" value="1.0" class="w-full" />
-                </div>
-                <div class="form-group">
-                    <label for="brightness" class="block text-sm font-medium">Brightness:</label>
-                    <input type="range" id="brightness" name="brightness" min="0.1" max="2.0" step="0.1" value="1.0" class="w-full" />
-                </div>
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full">Convert Image</button>
-            </form>
-        </section>
-
-        <script>
-            function updatePreview() {
-                const text = document.getElementById("text").value.trim();
-                const font = document.getElementById("font").value;
-
-                if (!text) {
-                    document.getElementById("ascii-preview").textContent = "Please enter some text.";
-                    return;
-                }
-
-                fetch(`/preview?text=${encodeURIComponent(text)}&font=${encodeURIComponent(font)}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error("Network response was not ok");
-                        }
-                        return response.text();
-                    })
-                    .then(data => {
-                        document.getElementById("ascii-preview").textContent = data || "Preview not available.";
-                        document.getElementById("preview-error").classList.add("hidden");
-                    })
-                    .catch(error => {
-                        console.error("Error fetching preview:", error);
-                        document.getElementById("ascii-preview").textContent = "Error generating preview.";
-                        document.getElementById("preview-error").classList.remove("hidden");
-                    });
-            }
-        </script>
     </div>
+
+    <script>
+        function updatePreview() {
+            const text = document.getElementById("text").value.trim();
+            const font = document.getElementById("font").value;
+            
+            if (!text) {
+                document.getElementById("ascii-preview").textContent = "Enter text to preview";
+                return;
+            }
+
+            fetch(`/preview?text=${encodeURIComponent(text)}&font=${encodeURIComponent(font)}`)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("ascii-preview").textContent = data || "Preview unavailable";
+                    document.getElementById("preview-error").classList.add("hidden");
+                })
+                .catch(() => {
+                    document.getElementById("preview-error").classList.remove("hidden");
+                });
+        }
+
+        function updateWidthLabel() {
+            document.getElementById("widthValue").textContent = 
+                document.getElementById("width").value;
+        }
+
+        function updateContrastLabel() {
+            document.getElementById("contrastValue").textContent = 
+                document.getElementById("contrast").value + "x";
+        }
+
+        function updateBrightnessLabel() {
+            document.getElementById("brightnessValue").textContent = 
+                document.getElementById("brightness").value + "x";
+        }
+
+        // Initialize slider labels
+        document.addEventListener("DOMContentLoaded", () => {
+            updateWidthLabel();
+            updateContrastLabel();
+            updateBrightnessLabel();
+        });
+    </script>
 </body>
 </html>
