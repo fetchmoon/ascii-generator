@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Art Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+        }
+        pre {
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            white-space: pre-wrap; /* Wrap long lines */
+        }
+        .error-message {
+            color: #ff4d4d;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 space-y-8">
+        <h1 class="text-3xl font-bold text-center">ASCII Art Preview</h1>
+
+        <!-- Live Preview -->
+        <section>
+            <h2 class="text-xl font-bold mb-4">Live Preview</h2>
+            <pre id="ascii-preview" class="text-gray-300">Loading preview...</pre>
+            <div id="preview-error" class="error-message hidden">An error occurred while fetching the preview.</div>
+        </section>
+
+        <!-- Back Button -->
+        <section>
+            <a href="/" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 inline-block" aria-label="Back to ASCII generator">Back to Generator</a>
+        </section>
+    </div>
+
+    <script>
+        async function fetchPreview() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const text = urlParams.get("text") || "";
+            const font = urlParams.get("font") || "standard";
+
+            const previewElement = document.getElementById("ascii-preview");
+            const errorElement = document.getElementById("preview-error");
+
+            if (!text) {
+                previewElement.textContent = "No text provided.";
+                return;
+            }
+
+            // Show loading state
+            previewElement.innerHTML = '<span class="loading-spinner"></span> Generating ASCII art...';
+            errorElement.classList.add("hidden");
+
+            try {
+                const response = await fetch(`/preview?text=${encodeURIComponent(text)}&font=${encodeURIComponent(font)}`);
+                if (!response.ok) {
+                    throw new Error("Failed to fetch preview.");
+                }
+                const asciiArt = await response.text();
+                previewElement.textContent = asciiArt || "No ASCII art generated.";
+            } catch (error) {
+                console.error("Error fetching preview:", error);
+                previewElement.textContent = "An error occurred while generating the preview.";
+                errorElement.classList.remove("hidden");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchPreview();
+        });
+    </script>
+</body>
+</html>

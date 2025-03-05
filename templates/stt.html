@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech-to-Text Converter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+        }
+        pre {
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            white-space: pre-wrap; /* Wrap long lines */
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #ff4d4d;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 space-y-8">
+        <h1 class="text-3xl font-bold text-center">Speech-to-Text Converter</h1>
+
+        <!-- Audio Upload -->
+        <form id="stt-form" method="POST" enctype="multipart/form-data" class="space-y-4">
+            <div class="form-group">
+                <label for="audio" class="block text-sm font-medium">Upload Audio File:</label>
+                <input type="file" id="audio" name="audio" accept=".wav,.mp3" class="w-full p-2 rounded bg-gray-700 text-white" aria-label="Upload audio file for speech-to-text conversion" required />
+            </div>
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full">Convert Speech to Text</button>
+        </form>
+
+        <!-- Live Feedback -->
+        <section>
+            <h2 class="text-xl font-bold">Live Feedback</h2>
+            <pre id="stt-output" class="text-gray-300">Waiting for audio upload...</pre>
+            <div id="stt-error" class="error-message hidden">An error occurred while processing the request.</div>
+        </section>
+    </div>
+
+    <script>
+        document.getElementById("stt-form").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const audioFile = document.getElementById("audio").files[0];
+            if (!audioFile) {
+                alert("Please upload an audio file.");
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ["audio/wav", "audio/mp3"];
+            if (!allowedTypes.includes(audioFile.type)) {
+                document.getElementById("stt-output").textContent = "Invalid file type. Please upload a .wav or .mp3 file.";
+                return;
+            }
+
+            // Validate file size (max 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (audioFile.size > maxSize) {
+                document.getElementById("stt-output").textContent = "File size exceeds the limit of 10MB.";
+                return;
+            }
+
+            formData.append("audio", audioFile);
+
+            // Show loading state
+            const outputElement = document.getElementById("stt-output");
+            outputElement.textContent = "";
+            outputElement.innerHTML = '<span class="loading-spinner"></span> Processing speech-to-text...';
+
+            try {
+                const response = await fetch("/stt", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (result.status === "success") {
+                    outputElement.textContent = result.text || "No text detected in the audio.";
+                } else {
+                    outputElement.textContent = `Error: ${result.message}`;
+                }
+            } catch (error) {
+                console.error("Error processing request:", error);
+                outputElement.textContent = "An unexpected error occurred.";
+                document.getElementById("stt-error").classList.remove("hidden");
+            }
+        });
+    </script>
+</body>
+</html>
